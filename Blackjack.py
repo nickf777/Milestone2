@@ -19,8 +19,7 @@ class Deck:
         self.all_cards = []
         for suit in suits:
             for rank in ranks:
-                created_card = Card(suit,rank)
-                self.all_cards.append(created_card)
+                self.all_cards.append(Card(suit,rank))
     
     def __str__(self):
         for card in self.all_cards:
@@ -40,19 +39,18 @@ class Hand:
         self.value = 0
         self.aces = 0
     
-    def add_card(self,new_cards):
-        if type(new_cards) == type([]):
-            self.cards.extend(new_cards)
-        else:
-            self.cards.append(new_cards)
-        self.value = sum(self.cards)
+    def add_card(self,card):
+        #should call deal from the deck class
+        self.cards.append(card)
+        self.value += values[card.rank]
+
+        if card.rank == 'Ace':
+            self.aces += 1
 
     def adjust_for_ace(self):
-        for card in self.cards:
-            if card.rank == 'Ace':
-                self.aces = self.value - 10
-            else:
-                self.aces = self.value
+        while self.value > 21 and self.aces:
+            self.value -= 10
+            self.aces -= 1
 
 
     def __str__(self):
@@ -61,56 +59,80 @@ class Hand:
         return 'This hand contains ' + str(len(self.cards)) + ' cards.'
 
 class Chips:
-    def __init__(self):
-        self.total = 100
+    def __init__(self,total=100):
+        self.total = total
         self.bet = 0
     
     def win_bet(self):
-        return self.total + self.bet
+        self.total += self.bet
 
     def lose_bet(self):
-        return self.total - self.bet
+        self.total -= self.bet
     
     def __str__(self):
         return 'You currently have $' + str(self.total) + 'in chips.'
 
 def take_bet(chips):
-    try:
-        bet = int(input('How much would you like to bet?'))
-    except:
-        print('That is not a valid bet. Please input a number indicating how much you would like to bet.')
-        take_bet(chips)
-    chips.bet = bet
-    return bet
+    while True:
+        try:
+            chips.bet = int(input('How many chips would you like to bet'))
+        except:
+            print('Sorry! Please put in an integer.')
+        else:
+            if chips.bet > chips.total:
+                print(f'Sorry! You do not have enough chips for this bet. You have {chips.total} chips.')
+            else:
+                break
 
 def hit(deck,hand):
-    return hand.add_card(deck.pop())
+    hand.add_card(deck.deal())
+    hand.adjust_for_ace
 
 def hit_or_stand(deck,hand):
     global playing
-    correct_choice = False
-    choices = ['Y', 'N']
-    while correct_choice == False:
-        choice = input('Do you want to hit? (Y/N)').upper()
-        if choice not in choices:
-            print('Sorry that is not a viable choice. Please pick Y/N.')
-        else:
-            correct_choice = True
-            break
     
-    if choice == 'Y':
-        hit(deck,hand)
-        print(f'Your hand contains {hand}')
-    else:
-        playing = False
-        print('You have chosen not to hit.')
-        print(f'Your hand contains {hand} ')
+    while True:
+        choice = input('Do you want to hit? (Y/N)')
+        if choice[0].upper() == 'Y':
+            print('You have chosen to hit.')
+            hit(deck,hand)
+        elif choice[0].upper() == 'N':
+            print("Player Stands. Dealer's Turn!")
+            playing = False
+        else:
+            print('Sorry I do not understand. Please enter Y or N.')
+        break
+    
 
 def show_some(player,dealer):
     #The dealer's first card is visible and all the player's cards are visible. 
-    print(f'The player has {player.hand}')
-    print(f'The dealer is showing {dealer.hand[0]}')
+    print("\nDealer's Hand:")
+    print(" <card hidden>")
+    print('',dealer.cards[1])  
+    print("\nPlayer's Hand:", *player.cards, sep='\n ')
 
 def show_all(player,dealer):
     #At the end all cards are visible
-    pass
+    print("\nDealer's Hand:", *dealer.cards, sep='\n ')
+    print("Dealer's Hand =",dealer.value)
+    print("\nPlayer's Hand:", *player.cards, sep='\n ')
+    print("Player's Hand =",player.value)
+
+def player_busts(player,dealer,chips):
+    print('Player busts')
+    chips.lose_bet()
+
+def player_wins(player,dealer,chips):
+    print('Player wins!')
+    chips.win_bet()
+
+def dealer_busts(player,dealer,chips):
+    print('Dealer busts!')
+    chips.win_bet()
+
+def dealer_wins(player,dealer,chips):
+    print('Dealer wins!')
+    chips.lose_bet()
+
+def push(player,dealer,chips):
+    print('Dealer and player tie!')
